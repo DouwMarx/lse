@@ -160,6 +160,9 @@ lse
 # List specific directory
 lse /path/to/directory
 
+# Show top 3 emojis per file
+lse --top-k 3
+
 # Re-index/train on different directory
 lse --index ~/new-projects
 
@@ -171,16 +174,96 @@ lse --index ~/projects --full-dataset --sample-size 300
 
 # Reset to default 20 emojis
 lse --reset-emojis
+
+# Configuration management
+lse --show-config      # View current config
+lse --reset-config     # Reset config to defaults
 ```
 
 **Data Storage:** All `lse` data is stored in `~/.lse/`:
 - `emoji_data.json` - Emoji descriptions (customizable, 20 or 150+ depending on dataset choice)
 - `emoji_data.json.backup` - Automatic backup when switching datasets
+- `config.json` - Configuration file (display settings, TF-IDF parameters)
 - `vectorizer.pkl` - Trained TF-IDF model
 - `emoji_vectors.npy` - Pre-computed emoji vectors
 - `emoji_list.json` - Emoji symbol list
 
 ## Configuration Options
+
+### Configuration File
+
+`lse` uses a JSON configuration file at `~/.lse/config.json` to customize behavior:
+
+```bash
+# View current configuration
+lse --show-config
+
+# Edit configuration
+nano ~/.lse/config.json
+
+# Reset to defaults
+lse --reset-config
+```
+
+**Default configuration:**
+```json
+{
+  "display": {
+    "top_k": 1,
+    "separator": ""
+  },
+  "tfidf": {
+    "max_features": 5000,
+    "min_df": 2,
+    "max_df": 0.95,
+    "stop_words": "english",
+    "ngram_range": [1, 2]
+  },
+  "dataset": {
+    "default_sample_size": 150
+  }
+}
+```
+
+**Configuration options:**
+- `display.top_k`: Number of emojis to show per file (default: 1)
+- `display.separator`: String between emojis when top_k > 1 (default: "", try "|" or " ")
+- `tfidf.max_features`: Maximum vocabulary size for TF-IDF (default: 5000)
+- `tfidf.min_df`: Ignore terms appearing in fewer than N documents (default: 2)
+- `tfidf.max_df`: Ignore terms appearing in more than N% of documents (default: 0.95)
+- `tfidf.stop_words`: Stop words list, "english" or null (default: "english")
+- `tfidf.ngram_range`: N-gram range [min, max] (default: [1, 2] for unigrams and bigrams)
+- `dataset.default_sample_size`: Default sample size for --full-dataset (default: 150)
+
+### Top-K Emoji Display
+
+Show multiple emojis per file for more context:
+
+```bash
+# Show top 3 emojis per file
+lse --top-k 3
+
+# Set default in config
+nano ~/.lse/config.json  # Change "top_k": 3
+```
+
+**Example with top_k=3:**
+```
+🐍📝🔧  main.py
+📊📈🔍  analysis.csv
+```
+
+**Customize separator:**
+```json
+{
+  "display": {
+    "top_k": 2,
+    "separator": "|"
+  }
+}
+```
+
+Output: `🐍|📝  main.py`
 
 ### Create a Shell Alias (Optional)
 

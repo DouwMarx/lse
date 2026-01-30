@@ -2,6 +2,9 @@
 emoji_data_hf_*.json
 test_hf_dataset.py
 
+# Backup files
+*.backup
+
 # Python cache
 __pycache__/
 *.py[cod]

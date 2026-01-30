@@ -29,6 +29,101 @@ EMOJI_VECS_PATH = MODEL_DIR / "emoji_vectors.npy"
 EMOJI_LIST_PATH = MODEL_DIR / "emoji_list.json"
 EMOJI_DATA_PATH = MODEL_DIR / "emoji_data.json"
 EMOJI_DATA_FALLBACK = Path(__file__).resolve().parent / "emoji_data.json"
+CONFIG_PATH = MODEL_DIR / "config.json"
+CONFIG_FALLBACK = Path(__file__).resolve().parent / "config.json"
+
+# Default configuration
+DEFAULT_CONFIG = {
+    "display": {
+        "top_k": 1,
+        "separator": ""
+    },
+    "tfidf": {
+        "max_features": 5000,
+        "min_df": 2,
+        "max_df": 0.95,
+        "stop_words": "english",
+        "ngram_range": [1, 2]
+    },
+    "dataset": {
+        "default_sample_size": 150
+    }
+}
+
+# ============================================================================
+# Configuration Management
+# ============================================================================
+
+def load_config() -> dict:
+    """
+    Load configuration from ~/.lse/config.json.
+    Falls back to default if not found.
+    """
+    import shutil
+
+    # Try primary location
+    if CONFIG_PATH.exists():
+        try:
+            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                # Merge with defaults to handle missing keys
+                for section, values in DEFAULT_CONFIG.items():
+                    if section not in config:
+                        config[section] = values
+                    else:
+                        for key, value in values.items():
+                            if key not in config[section]:
+                                config[section][key] = value
+                return config
+        except Exception as e:
+            print(f"⚠️  Failed to load config: {e}. Using defaults.", file=sys.stderr)
+            return DEFAULT_CONFIG.copy()
+
+    # Try fallback location (repo)
+    if CONFIG_FALLBACK.exists():
+        MODEL_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy(CONFIG_FALLBACK, CONFIG_PATH)
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    # Use defaults
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+        json.dump(DEFAULT_CONFIG, f, indent=2)
+    return DEFAULT_CONFIG.copy()
+
+def save_config(config: dict):
+    """Save configuration to ~/.lse/config.json"""
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=2)
+
+def show_config():
+    """Display current configuration"""
+    config = load_config()
+    print("📝 Current configuration:")
+    print(f"   Location: {CONFIG_PATH}")
+    print()
+    print(json.dumps(config, indent=2))
+    print()
+    print("💡 Edit with: nano ~/.lse/config.json")
+    print("💡 Reset with: lse --reset-config")
+
+def reset_config():
+    """Reset configuration to defaults"""
+    import shutil
+
+    print("🔄 Resetting configuration to defaults...")
+
+    # Backup current if it exists
+    if CONFIG_PATH.exists():
+        backup_path = MODEL_DIR / "config.json.backup"
+        shutil.copy(CONFIG_PATH, backup_path)
+        print(f"📦 Backed up current config to {backup_path.name}")
+
+    # Save defaults
+    save_config(DEFAULT_CONFIG)
+    print(f"✅ Reset to default configuration")
 
 # ============================================================================
 # File Reading Utilities
@@ -257,16 +352,22 @@ def train_mode(index_path: Path, use_full_dataset: bool = False, sample_size: in
 
     print(f"😀 Loaded {len(emoji_data)} emojis")
 
+    # Load configuration
+    config = load_config()
+    tfidf_config = config['tfidf']
+
     # Fit TF-IDF on combined corpus
     print("🔨 Training TF-IDF vectorizer...")
+    print(f"   Config: max_features={tfidf_config['max_features']}, "
+          f"min_df={tfidf_config['min_df']}, max_df={tfidf_config['max_df']}")
     all_texts = file_contents + emoji_descriptions
 
     vectorizer = TfidfVectorizer(
-        max_features=5000,
-        min_df=2, # ignore rare terms
-        max_df=0.95, # ignore very common terms
-        stop_words='english',
-        ngram_range=(1, 2) # unigrams and bigrams (like cat sat, and not just cat)
+        max_features=tfidf_config['max_features'],
+        min_df=tfidf_config['min_df'],
+        max_df=tfidf_config['max_df'],
+        stop_words=tfidf_config['stop_words'],
+        ngram_range=tuple(tfidf_config['ngram_range'])
     )
 
     all_vectors = vectorizer.fit_transform(all_texts)
@@ -311,15 +412,16 @@ def load_model() -> Tuple[TfidfVectorizer, np.ndarray, List[str]]:
 
     return vectorizer, emoji_vectors, emoji_list
 
-def get_emoji_for_file(
+def get_emojis_for_file(
     content: str,
     filename: str,
     vectorizer: TfidfVectorizer,
     emoji_vectors: np.ndarray,
-    emoji_list: List[str]
-) -> str:
+    emoji_list: List[str],
+    top_k: int = 1
+) -> List[str]:
     """
-    Get the best matching emoji for a file.
+    Get the top-k best matching emojis for a file.
     """
     # If file is too small/empty, use filename
     text = content if len(content) > 50 else filename * 5
@@ -330,15 +432,21 @@ def get_emoji_for_file(
     # Compute cosine similarity
     similarities = cosine_similarity(file_vector, emoji_vectors)[0]
 
-    # Get best match
-    best_idx = similarities.argmax()
+    # Get top k matches
+    top_indices = np.argsort(similarities)[-top_k:][::-1]
 
-    return emoji_list[best_idx]
+    return [emoji_list[idx] for idx in top_indices]
 
-def inference_mode(target_path: Path):
+def inference_mode(target_path: Path, top_k: int = None):
     """
     List directory with emojis.
     """
+    # Load configuration
+    config = load_config()
+    if top_k is None:
+        top_k = config['display']['top_k']
+    separator = config['display']['separator']
+
     # Load model
     vectorizer, emoji_vectors, emoji_list = load_model()
 
@@ -349,19 +457,28 @@ def inference_mode(target_path: Path):
 
     entries = sorted(target_path.iterdir())
 
+    # Calculate padding: assume each emoji is ~2 chars wide
+    # Add space for separator between emojis
+    emoji_width = top_k * 2 + len(separator) * (top_k - 1)
+    padding = emoji_width + 2  # +2 for the two spaces after emojis
+
     for entry in entries:
         if entry.is_dir():
-            print(f"📁  {entry.name}/")
+            # Pad directory emoji to match file emoji width
+            print(f"{'📁':<{padding}} {entry.name}/")
         else:
             content = read_file_safe(entry)
-            emoji = get_emoji_for_file(
+            emojis = get_emojis_for_file(
                 content,
                 entry.name,
                 vectorizer,
                 emoji_vectors,
-                emoji_list
+                emoji_list,
+                top_k
             )
-            print(f"{emoji}  {entry.name}")
+            emoji_str = separator.join(emojis)
+            # Pad emoji string to consistent width
+            print(f"{emoji_str:<{padding}} {entry.name}")
 
 # ============================================================================
 # Main Entry Point
@@ -379,6 +496,9 @@ Examples:
   lse --reset-emojis                        Reset to default 20 emojis
   lse                                       List current directory with emojis
   lse /path/to/dir                          List specific directory with emojis
+  lse --top-k 3                             Show top 3 emojis per file
+  lse --show-config                         Display current configuration
+  lse --reset-config                        Reset configuration to defaults
         """
     )
 
@@ -410,6 +530,25 @@ Examples:
     )
 
     parser.add_argument(
+        '--top-k',
+        type=int,
+        metavar='K',
+        help='Show top K emojis per file (default: from config, usually 1)'
+    )
+
+    parser.add_argument(
+        '--show-config',
+        action='store_true',
+        help='Display current configuration'
+    )
+
+    parser.add_argument(
+        '--reset-config',
+        action='store_true',
+        help='Reset configuration to defaults'
+    )
+
+    parser.add_argument(
         'path',
         nargs='?',
         type=Path,
@@ -419,12 +558,16 @@ Examples:
 
     args = parser.parse_args()
 
-    if args.reset_emojis:
+    if args.show_config:
+        show_config()
+    elif args.reset_config:
+        reset_config()
+    elif args.reset_emojis:
         reset_emojis()
     elif args.index:
         train_mode(args.index, args.full_dataset, args.sample_size)
     else:
-        inference_mode(args.path)
+        inference_mode(args.path, args.top_k)
 
 if __name__ == "__main__":
     main()

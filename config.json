@@ -1,0 +1,16 @@
+{
+  "display": {
+    "top_k": 1,
+    "separator": ""
+  },
+  "tfidf": {
+    "max_features": 5000,
+    "min_df": 2,
+    "max_df": 0.95,
+    "stop_words": "english",
+    "ngram_range": [1, 2]
+  },
+  "dataset": {
+    "default_sample_size": 150
+  }
+}

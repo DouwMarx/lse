@@ -41,6 +41,15 @@ else
     echo -e "${YELLOW}⚠️  emoji_data.json not found in $SCRIPT_DIR${NC}"
 fi
 
+# Copy config.json to ~/.lse/
+CONFIG_FILE="$SCRIPT_DIR/config.json"
+if [ -f "$CONFIG_FILE" ]; then
+    cp "$CONFIG_FILE" "$HOME/.lse/config.json"
+    echo "✅ Copied config.json to ~/.lse/"
+else
+    echo -e "${YELLOW}⚠️  config.json not found in $SCRIPT_DIR${NC}"
+fi
+
 # Detect shell and add to PATH if needed
 add_to_path() {
     local config_file=$1
