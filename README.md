@@ -2,13 +2,15 @@
 
 A Python script that enhances directory listings by automatically adding contextual emojis to filenames based on their content using TF-IDF and cosine similarity.
 
-```bash
-$ lse
-⚙️  description.md
-🧠  emoji_data.json
-🐍  lse.py
-📝  README.md
-```
+## Screenshots
+
+**Basic usage:**
+
+![lse example](images/example.png)
+
+**Top-k mode (showing multiple emojis per file):**
+
+![lse top-k example](images/topk.png)
 
 ## How It Works
 
