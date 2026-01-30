@@ -1,0 +1,22 @@
+[
+  {"emoji": "🐍", "description": "python programming language code script interpreter"},
+  {"emoji": "📊", "description": "data visualization chart graph statistics analytics"},
+  {"emoji": "🧠", "description": "neural network machine learning artificial intelligence model"},
+  {"emoji": "📝", "description": "text document markdown notes writing readme"},
+  {"emoji": "🎨", "description": "design graphics css style image visual art"},
+  {"emoji": "⚙️", "description": "configuration settings yaml json toml config"},
+  {"emoji": "🔧", "description": "build tool makefile cmake compiler build system"},
+  {"emoji": "📦", "description": "package dependency library module npm pip"},
+  {"emoji": "🗄️", "description": "database sql storage data persistence"},
+  {"emoji": "🌐", "description": "web html http api server network"},
+  {"emoji": "🔐", "description": "security encryption key certificate authentication"},
+  {"emoji": "📋", "description": "log output trace debug information"},
+  {"emoji": "🧪", "description": "test testing unit integration pytest"},
+  {"emoji": "📚", "description": "documentation guide tutorial reference manual"},
+  {"emoji": "🚀", "description": "deployment docker kubernetes container orchestration"},
+  {"emoji": "💾", "description": "binary executable compiled application program"},
+  {"emoji": "🔍", "description": "search query index elasticsearch"},
+  {"emoji": "⚡", "description": "performance optimization fast speed efficient"},
+  {"emoji": "🐛", "description": "bug error exception debugging fix"},
+  {"emoji": "📁", "description": "directory folder"}
+]
