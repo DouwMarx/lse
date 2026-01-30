@@ -1,0 +1,19 @@
+# Test files and generated datasets
+emoji_data_hf_*.json
+test_hf_dataset.py
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

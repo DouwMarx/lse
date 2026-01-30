@@ -70,6 +70,32 @@ This creates a trained model in `~/.lse/` based on your actual files.
 - The more varied your files, the better the emoji matching
 - Re-run indexing anytime to update the model
 
+**Extended Emoji Dataset (Optional):**
+
+By default, `lse` uses a curated set of 20 emojis optimized for code. For more variety and higher entropy, download a random sample from the HuggingFace dataset (5,000+ emojis):
+
+```bash
+# Download 150 random emojis (default)
+./lse.py --index ~/projects --full-dataset
+
+# Customize sample size
+./lse.py --index ~/projects --full-dataset --sample-size 300
+
+# Reset back to default 20 emojis
+./lse.py --reset-emojis
+./lse.py --index ~/projects  # Re-train with defaults
+```
+
+**Why use extended dataset?**
+- More diverse and unique emoji assignments
+- Higher entropy (less repetition across similar files)
+- 150+ emojis vs 20 default emojis
+
+**Why stick with defaults?**
+- More predictable, semantic mappings
+- Faster training and inference
+- Focused on common programming contexts
+
 ### 4. Install Globally
 
 To use `lse` from anywhere, you need to add it to your PATH.
@@ -136,10 +162,20 @@ lse /path/to/directory
 
 # Re-index/train on different directory
 lse --index ~/new-projects
+
+# Use extended emoji dataset (150 random emojis from 5000+)
+lse --index ~/projects --full-dataset
+
+# Customize sample size
+lse --index ~/projects --full-dataset --sample-size 300
+
+# Reset to default 20 emojis
+lse --reset-emojis
 ```
 
 **Data Storage:** All `lse` data is stored in `~/.lse/`:
-- `emoji_data.json` - Emoji descriptions (customizable)
+- `emoji_data.json` - Emoji descriptions (customizable, 20 or 150+ depending on dataset choice)
+- `emoji_data.json.backup` - Automatic backup when switching datasets
 - `vectorizer.pkl` - Trained TF-IDF model
 - `emoji_vectors.npy` - Pre-computed emoji vectors
 - `emoji_list.json` - Emoji symbol list
