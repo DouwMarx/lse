@@ -40,24 +40,17 @@ uv --version
 
 ## Installation
 
-### 1. Clone or Download
+### 1. Clone and Setup
 
 ```bash
-git clone <your-repo-url> lse
+git clone https://github.com/DouwMarx/lse.git
 cd lse
+./setup.sh
 ```
 
-Or download the files manually and ensure you have:
-- `lse.py`
-- `emoji_data.json`
+Then reload your shell or open a new terminal.
 
-### 2. Make Executable
-
-```bash
-chmod +x lse.py
-```
-
-### 3. Index Your Files (Required First Step)
+### 2. Index Your Files (Required First Step)
 
 Train the model on your codebase to learn what kinds of files you work with:
 
@@ -72,86 +65,33 @@ This creates a trained model in `~/.lse/` based on your actual files.
 - The more varied your files, the better the emoji matching
 - Re-run indexing anytime to update the model
 
-**Extended Emoji Dataset (Optional):**
-
-By default, `lse` uses a curated set of 20 emojis optimized for code. For more variety and higher entropy, download a random sample from the HuggingFace dataset (5,000+ emojis):
+**Want more emoji variety?** Use the extended dataset (1,381 simple emojis):
 
 ```bash
-# Download 150 random emojis (default)
-./lse.py --index ~/projects --full-dataset
-
-# Customize sample size
-./lse.py --index ~/projects --full-dataset --sample-size 300
-
-# Reset back to default 20 emojis
-./lse.py --reset-emojis
-./lse.py --index ~/projects  # Re-train with defaults
+lse --index ~/projects --full-dataset
 ```
 
-**Why use extended dataset?**
-- More diverse and unique emoji assignments
-- Higher entropy (less repetition across similar files)
-- 150+ emojis vs 20 default emojis
+<details>
+<summary>Extended dataset details</summary>
 
-**Why stick with defaults?**
-- More predictable, semantic mappings
-- Faster training and inference
-- Focused on common programming contexts
-
-### 4. Install Globally
-
-To use `lse` from anywhere, you need to add it to your PATH.
-
-#### Option A: Automated Setup (Recommended)
-
-**From the project directory**, run:
+By default, `lse` uses 20 curated emojis optimized for code. The extended dataset downloads a random sample from HuggingFace (5,000+ emojis, filtered to 1,381 simple ones):
 
 ```bash
-./setup.sh
+# Default: 150 random emojis
+lse --index ~/projects --full-dataset
+
+# Larger sample
+lse --index ~/projects --full-dataset --sample-size 300
+
+# Reset to default 20 emojis
+lse --reset-emojis
+lse --index ~/projects
 ```
 
-This script will:
-- Make `lse.py` executable
-- Create `~/.local/bin/` and symlink `lse` there
-- Automatically detect your shell (bash/zsh/fish) and add to PATH persistently
-- Tell you exactly what it did
+**Extended dataset:** More diverse, higher entropy, less repetition
+**Default dataset:** Predictable, semantic, focused on code
 
-Then reload your shell:
-```bash
-source ~/.bashrc  # or ~/.zshrc, or ~/.config/fish/config.fish
-# Or just open a new terminal
-```
-
-#### Option B: Manual Setup
-
-**From the project directory:**
-
-```bash
-# Create ~/.local/bin if it doesn't exist
-mkdir -p ~/.local/bin
-
-# Symlink the script (pwd must be the lse project directory)
-ln -s $(pwd)/lse.py ~/.local/bin/lse
-```
-
-Then add `~/.local/bin` to your PATH permanently:
-
-**For bash/zsh** - Add to `~/.bashrc` or `~/.zshrc`:
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-**For fish** - Add to `~/.config/fish/config.fish`:
-```fish
-set -gx PATH $HOME/.local/bin $PATH
-```
-
-Reload your shell or open a new terminal.
-
-**Test it:**
-```bash
-lse ~
-```
+</details>
 
 ## Usage
 
@@ -182,131 +122,73 @@ lse --show-config      # View current config
 lse --reset-config     # Reset config to defaults
 ```
 
-**Data Storage:** All `lse` data is stored in `~/.lse/`:
-- `emoji_data.json` - Emoji descriptions (customizable, 20 or 150+ depending on dataset choice)
-- `emoji_data.json.backup` - Automatic backup when switching datasets
-- `config.json` - Configuration file (display settings, TF-IDF parameters)
-- `vectorizer.pkl` - Trained TF-IDF model
-- `emoji_vectors.npy` - Pre-computed emoji vectors
-- `emoji_list.json` - Emoji symbol list
+All data is stored in `~/.lse/` (config, emoji descriptions, trained model)
 
-## Configuration Options
+## Configuration
 
-### Configuration File
-
-`lse` uses a JSON configuration file at `~/.lse/config.json` to customize behavior:
+`lse` stores settings in `~/.lse/config.json`:
 
 ```bash
-# View current configuration
-lse --show-config
-
-# Edit configuration
-nano ~/.lse/config.json
-
-# Reset to defaults
-lse --reset-config
+lse --show-config      # View config
+nano ~/.lse/config.json # Edit config
+lse --reset-config     # Reset to defaults
 ```
 
-**Default configuration:**
-```json
-{
-  "display": {
-    "top_k": 1,
-    "separator": ""
-  },
-  "tfidf": {
-    "max_features": 5000,
-    "min_df": 2,
-    "max_df": 0.95,
-    "stop_words": "english",
-    "ngram_range": [1, 2]
-  },
-  "dataset": {
-    "default_sample_size": 150
-  }
-}
-```
-
-**Configuration options:**
-- `display.top_k`: Number of emojis to show per file (default: 1)
-- `display.separator`: String between emojis when top_k > 1 (default: "", try "|" or " ")
-- `tfidf.max_features`: Maximum vocabulary size for TF-IDF (default: 5000)
-- `tfidf.min_df`: Ignore terms appearing in fewer than N documents (default: 2)
-- `tfidf.max_df`: Ignore terms appearing in more than N% of documents (default: 0.95)
-- `tfidf.stop_words`: Stop words list, "english" or null (default: "english")
-- `tfidf.ngram_range`: N-gram range [min, max] (default: [1, 2] for unigrams and bigrams)
-- `dataset.default_sample_size`: Default sample size for --full-dataset (default: 150)
-
-### Top-K Emoji Display
-
-Show multiple emojis per file for more context:
+**Common settings:**
 
 ```bash
-# Show top 3 emojis per file
+# Show multiple emojis per file
 lse --top-k 3
 
-# Set default in config
-nano ~/.lse/config.json  # Change "top_k": 3
+# Or set permanently in config
+nano ~/.lse/config.json  # Change "top_k": 3, "separator": "|"
 ```
 
-**Example with top_k=3:**
-```
-🐍📝🔧  main.py
-📊📈🔍  analysis.csv
-```
+<details>
+<summary>All configuration options</summary>
 
-**Customize separator:**
 ```json
 {
   "display": {
-    "top_k": 2,
-    "separator": "|"
+    "top_k": 1,           // Number of emojis per file
+    "separator": ""       // String between emojis (try "|" or " ")
+  },
+  "tfidf": {
+    "max_features": 5000, // TF-IDF vocabulary size
+    "min_df": 2,          // Ignore rare terms (< N docs)
+    "max_df": 0.95,       // Ignore common terms (> N% docs)
+    "stop_words": "english",
+    "ngram_range": [1, 2] // Unigrams and bigrams
+  },
+  "dataset": {
+    "default_sample_size": 150 // Default for --full-dataset
   }
 }
 ```
 
-Output: `🐍|📝  main.py`
+**Examples:**
+- `top_k=1`: `🐍    main.py`
+- `top_k=3`: `🐍📝🔧      main.py`
+- `top_k=2, separator="|"`: `🐍|📝     main.py`
 
-### Create a Shell Alias (Optional)
+</details>
 
-If you want `ls` to automatically use `lse`, add to your shell config:
-
-**For bash/zsh** (`~/.bashrc` or `~/.zshrc`):
-```bash
-alias ls='lse'
-
-# Or keep both available
-alias ll='lse'
-```
-
-**For fish** (`~/.config/fish/config.fish`):
-```fish
-alias ls='lse'
-alias ll='lse'
-```
-
-### Customize Emojis
-
-All emoji data is stored in `~/.lse/emoji_data.json`. To customize:
+**Shell alias (optional):**
 
 ```bash
-# Edit the emoji data
+# Add to ~/.bashrc, ~/.zshrc, or ~/.config/fish/config.fish
+alias ls='lse'
+```
+
+**Customize emojis:**
+
+```bash
+# Edit emoji descriptions
 nano ~/.lse/emoji_data.json
 
-# Add your custom emojis
-{
-  "emoji": "🦀",
-  "description": "rust programming language systems cargo crate"
-}
-
-# Re-index to apply changes
+# Add your own (e.g., {"emoji": "🦀", "description": "rust..."})
+# Then re-index
 lse --index ~/projects
-```
-
-The `setup.sh` script automatically copies `emoji_data.json` to `~/.lse/` during installation. If you want to reset to defaults, copy from the project directory:
-
-```bash
-cp /path/to/lse/emoji_data.json ~/.lse/
 ```
 
 ## Troubleshooting
